@@ -1,4 +1,5 @@
 .env
 venv/
 __pycache__/
-*.dbsrevenue_recovery.db 
+*.db
+revenue_recovery.db
