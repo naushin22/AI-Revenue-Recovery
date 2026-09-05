@@ -73,21 +73,59 @@ div[data-baseweb="select"] > div {
 .trace-divider { border: none; border-top: 1px solid #1E2530; margin: 12px 0; }
 
 .eyebrow { color: #545B66; font-size: 0.75rem; letter-spacing: 0.03em; margin-bottom: -0.5rem; }
+
+/* Header badges */
+.badge-row { display: flex; gap: 10px; margin: 10px 0 4px 0; flex-wrap: wrap; }
+.badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    padding: 5px 12px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.badge-blue { background: rgba(96,165,250,0.1); color: #60A5FA; border: 1px solid rgba(96,165,250,0.25); }
+.badge-green { background: rgba(74,222,128,0.1); color: #4ADE80; border: 1px solid rgba(74,222,128,0.25); }
+.badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; display: inline-block; }
+
+/* Callout box for graceful-failure highlight */
+.callout {
+    background: rgba(245,158,11,0.06);
+    border: 1px solid rgba(245,158,11,0.25);
+    border-left: 3px solid #F59E0B;
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin: 12px 0 24px 0;
+}
+.callout-title { color: #F59E0B; font-weight: 600; font-size: 0.9rem; margin-bottom: 4px; }
+.callout-body { color: #C7CBD1; font-size: 0.88rem; line-height: 1.5; }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<p class="eyebrow">AI REVENUE RECOVERY</p>', unsafe_allow_html=True)
+st.markdown('<p class="eyebrow">RAZORPAY BUILDATHON &middot; TRACK 03 &middot; AI REVENUE RECOVERY</p>', unsafe_allow_html=True)
 st.title("Recovery Console")
+st.markdown("""
+<div class="badge-row">
+    <span class="badge badge-blue"><span class="badge-dot"></span>Gemini 3.5 Flash-Lite -- live diagnosis</span>
+    <span class="badge badge-green"><span class="badge-dot"></span>Policy gate active -- bounded &amp; auditable</span>
+</div>
+""", unsafe_allow_html=True)
 
 session = get_session()
 
 # ---------- Sidebar: run batch ----------
-st.sidebar.header("Batch control")
-if st.sidebar.button("Run batch now (calls Gemini, ~2-3 min)"):
+st.sidebar.markdown('<p class="eyebrow">BATCH CONTROL</p>', unsafe_allow_html=True)
+st.sidebar.caption("Detect -> diagnose (Gemini) -> gate (policy) -> act -> log, across all at-risk payments.")
+if st.sidebar.button("Run full batch"):
     from batch_runner import run_batch
     with st.spinner("Running detect -> diagnose -> gate -> act pipeline..."):
         run_batch()
-    st.sidebar.success("Batch complete. Refresh below.")
+    st.sidebar.success("Batch complete -- data refreshed below.")
+
+st.sidebar.markdown("<hr class='trace-divider'>", unsafe_allow_html=True)
+st.sidebar.markdown('<p class="eyebrow">POLICY THRESHOLDS</p>', unsafe_allow_html=True)
+st.sidebar.caption("Max retries: 3  \nMin confidence to act: 0.5  \nAuto-action cap: Rs 10,000  \nCooldown: 6h")
 
 # ---------- Overview metrics ----------
 st.header("Batch overview")
@@ -133,7 +171,25 @@ st.bar_chart(failure_df.set_index("failure_code"), color="#F59E0B", height=280)
 
 # ---------- Exceptions list (escalated / unresolved) ----------
 st.header("Exceptions -- could not auto-resolve")
+
 escalated = [i for i in interventions if i.outcome == "pending_human_review"]
+
+# Highlight one real retry-cap escalation as the "graceful failure" proof point
+retry_cap_example = next(
+    (i for i in escalated if i.payment.retry_count >= 3), None
+)
+if retry_cap_example:
+    st.markdown(f"""
+    <div class="callout">
+        <div class="callout-title">Graceful failure handled &middot; Payment {retry_cap_example.payment_id}</div>
+        <div class="callout-body">
+            Retry count reached {retry_cap_example.payment.retry_count} (policy cap: 3). Instead of auto-acting,
+            the policy gate blocked the diagnosis agent's suggestion and escalated to a human reviewer.
+            <br><br><b>Reason logged:</b> <i>{retry_cap_example.reason}</i>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
 if escalated:
     exc_data = [
         {
