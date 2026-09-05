@@ -31,15 +31,14 @@ The LLM decides *what* the right action probably is. It never decides *whether* 
 
 ## Result on a 60-record synthetic batch
 
-Numbers vary slightly between runs (see [Note on reproducibility](#note-on-reproducibility) below).
-
 | Metric | Value |
 |---|---|
 | Total at-risk amount | Rs 3,97,221 |
-| Recovered amount | Rs 1,05,870 (best run) |
-| Recovery rate | 26.7% (best run) |
+| Recovered amount | Rs 94,090 |
+| Recovery rate | 23.7% |
 | Payments processed | 60 |
 | Escalated to human review | 15 |
+| No customer response | 27 |
 
 **Graceful failure example (Payment 33):** retry count reached the policy cap of 3. Rather than auto-acting on the diagnosis agent's suggestion, the policy gate blocked execution and escalated to a human reviewer, logging the reason: *"Retry count has reached or exceeded 3, so human intervention is recommended to avoid annoying the customer."* This is visible live in the dashboard's audit trail viewer for any payment ID.
 
@@ -80,7 +79,7 @@ The dashboard's sidebar also has a "Run full batch" button that re-runs the enti
 
 ## Note on reproducibility
 
-Recovery outcomes (`recovered` / `no_response`) are currently simulated probabilistically in `batch_runner.py`'s `execute_action()`, standing in for a real Razorpay Payment Links / SMS send in this prototype. This means the recovery rate varies slightly run to run (observed range: ~19–27% across runs) — the diagnosis and gating decisions themselves are deterministic and fully reproducible; only the simulated customer response is randomized.
+The simulated recovery outcome (`recovered` / `no_response`) stands in for a real Razorpay Payment Links / SMS send in this prototype, and uses a fixed random seed (`random.seed(7)` in `batch_runner.py`) so the batch produces the same result on every run. The diagnosis and gating decisions are independently deterministic given the same Gemini responses.
 
 ## What's simulated vs. real in this build
 

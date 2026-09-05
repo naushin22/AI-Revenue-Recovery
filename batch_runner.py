@@ -1,4 +1,5 @@
 import time
+import random
 from datetime import datetime
 from models import get_session, Payment, Intervention, AuditLog
 from diagnosis_agent import diagnose_payment
@@ -6,6 +7,11 @@ from policy_gate import evaluate_gate
 
 # Free-tier limits vary by model; 2s spacing is safe for higher-RPM Flash-Lite models
 SECONDS_BETWEEN_CALLS = 2
+
+# Fixed seed so the simulated recovery outcomes are reproducible across runs --
+# the diagnosis and gating logic is already deterministic; this just makes the
+# demo number consistent for presentation purposes.
+random.seed(7)
 
 
 def log(session, entity_type, entity_id, actor, decision, rationale):
@@ -26,7 +32,6 @@ def execute_action(action_type, payment):
     send an SMS/email, etc. For the hackathon, we simulate outcomes probabilistically
     so the batch produces realistic recovered/failed results.
     """
-    import random
     if action_type == "retry_link":
         return "recovered" if random.random() < 0.35 else "no_response"
     if action_type == "sms_nudge":
