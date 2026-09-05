@@ -38,8 +38,13 @@ def execute_action(action_type, payment):
     return "unknown_action"
 
 
-def run_batch():
+def run_batch(reset_first=True):
     session = get_session()
+
+    if reset_first:
+        session.query(Intervention).delete()
+        session.query(AuditLog).delete()
+        session.commit()
 
     at_risk_payments = session.query(Payment).filter(
         Payment.status.in_(["failed", "abandoned"])
